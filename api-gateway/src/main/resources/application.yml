@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
+        - id: trip-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/trips/**
+          filters:
+            - StripPrefix=1
+        - id: payment-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - StripPrefix=1

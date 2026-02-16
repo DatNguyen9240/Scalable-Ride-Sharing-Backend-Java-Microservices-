@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  postgres-user:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+
+  postgres-trip:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: tripdb
+      POSTGRES_USER: trip
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_trip_data:/var/lib/postgresql/data
+
+  postgres-payment:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+      - trip-service
+      - payment-service
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres-user
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  trip-service:
+    build: ./trip-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres-trip
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres-payment
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+volumes:
+  postgres_user_data:
+  postgres_trip_data:
+  postgres_payment_data:
