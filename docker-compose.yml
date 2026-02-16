@@ -53,7 +53,9 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
 
   trip-service:
-    build: ./trip-service
+    build:
+      context: .
+      dockerfile: trip-service/Dockerfile
     ports:
       - "8082:8082"
     depends_on:

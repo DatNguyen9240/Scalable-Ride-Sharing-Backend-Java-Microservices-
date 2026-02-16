@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Cache Maven local repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Build with Maven (skip tests)
+        run: mvn -B -DskipTests package
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker images (use build cache)
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            MAVEN_OPTS=-Xmx1024m
+          platforms: linux/amd64
+          outputs: type=local,dest=./image-output
+          # build all service images using multi-stage Dockerfiles
+          file: trip-service/Dockerfile
+          context: .
+          tags: trip-service:ci-${{ github.sha }}
+
+      - name: Build remaining Docker images (user/payment/api)
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          context: .
+          file: user-service/Dockerfile
+          tags: user-service:ci-${{ github.sha }}
+
+      - name: Build payment-service image
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          context: .
+          file: payment-service/Dockerfile
+          tags: payment-service:ci-${{ github.sha }}
+
+      - name: Build api-gateway image
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          context: .
+          file: api-gateway/Dockerfile
+          tags: api-gateway:ci-${{ github.sha }}
+
+      - name: Upload build artifacts (jars)
+        uses: actions/upload-artifact@v4
+        with:
+          name: jars
+          path: |
+            **/target/*-0.0.1-SNAPSHOT.jar
