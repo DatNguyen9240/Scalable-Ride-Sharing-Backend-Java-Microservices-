@@ -30,10 +30,20 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
+            // tenantId should be provided in payload for tenant-scoped registration
+            if (user.getTenantId() == null || user.getTenantId().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "tenantId is required"));
+            }
+
             User registeredUser = userService.registerUser(user);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User registered successfully");
             response.put("userId", registeredUser.getId());
+
+            // return a token including tenant claim
+            String token = jwtUtil.generateToken(registeredUser.getUsername(), registeredUser.getTenantId());
+            response.put("token", token);
+
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -43,14 +53,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
         try {
+            String username = loginRequest.get("username");
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                    loginRequest.get("username"),
+                    username,
                     loginRequest.get("password")
                 )
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String token = jwtUtil.generateToken(loginRequest.get("username"));
+
+            // include tenant claim in token
+            String tenantId = userService.findByUsername(username)
+                    .map(User::getTenantId)
+                    .orElse("default");
+
+            String token = jwtUtil.generateToken(username, tenantId);
             return ResponseEntity.ok(Map.of("token", token));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid credentials"));

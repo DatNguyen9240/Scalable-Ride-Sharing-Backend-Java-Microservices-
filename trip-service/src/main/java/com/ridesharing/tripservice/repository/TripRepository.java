@@ -10,9 +10,15 @@ import java.util.List;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
-    List<Trip> findByPassengerId(Long passengerId);
+    List<Trip> findByTenantId(String tenantId);
 
-    List<Trip> findByDriverId(Long driverId);
+    List<Trip> findByTenantIdAndPassengerId(String tenantId, Long passengerId);
 
-    List<Trip> findByStatus(TripStatus status);
-}
+    List<Trip> findByTenantIdAndDriverId(String tenantId, Long driverId);
+
+    List<Trip> findByTenantIdAndStatus(String tenantId, TripStatus status);
+
+    java.util.Optional<Trip> findByIdAndTenantId(Long id, String tenantId);
+
+    void deleteByIdAndTenantId(Long id, String tenantId);
+} 

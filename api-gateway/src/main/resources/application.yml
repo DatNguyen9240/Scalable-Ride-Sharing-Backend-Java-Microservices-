@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+jwt:
+  secret: mySecretKey
+  expiration: 86400000
+
 spring:
   cloud:
     gateway:

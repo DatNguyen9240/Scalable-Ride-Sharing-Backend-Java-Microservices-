@@ -18,11 +18,14 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public User registerUser(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists");
+        if (user.getTenantId() == null || user.getTenantId().isBlank()) {
+            throw new RuntimeException("tenantId is required");
         }
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email already exists");
+        if (userRepository.existsByUsernameAndTenantId(user.getUsername(), user.getTenantId())) {
+            throw new RuntimeException("Username already exists for this tenant");
+        }
+        if (userRepository.existsByEmailAndTenantId(user.getEmail(), user.getTenantId())) {
+            throw new RuntimeException("Email already exists for this tenant");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);

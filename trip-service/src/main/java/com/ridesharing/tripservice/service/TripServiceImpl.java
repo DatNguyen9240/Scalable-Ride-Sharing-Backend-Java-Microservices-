@@ -5,6 +5,7 @@ import com.ridesharing.tripservice.model.TripStatus;
 import com.ridesharing.tripservice.repository.TripRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +19,11 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public Trip createTrip(Trip trip) {
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new RuntimeException("Missing tenant context");
+        }
+        trip.setTenantId(tenantId);
         trip.setStatus(TripStatus.REQUESTED);
         trip.setRequestedAt(LocalDateTime.now());
         return tripRepository.save(trip);
@@ -25,32 +31,38 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public Optional<Trip> getTripById(Long id) {
-        return tripRepository.findById(id);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        return tripRepository.findByIdAndTenantId(id, tenantId);
     }
 
     @Override
     public List<Trip> getAllTrips() {
-        return tripRepository.findAll();
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        return tripRepository.findByTenantId(tenantId);
     }
 
     @Override
     public List<Trip> getTripsByPassenger(Long passengerId) {
-        return tripRepository.findByPassengerId(passengerId);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        return tripRepository.findByTenantIdAndPassengerId(tenantId, passengerId);
     }
 
     @Override
     public List<Trip> getTripsByDriver(Long driverId) {
-        return tripRepository.findByDriverId(driverId);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        return tripRepository.findByTenantIdAndDriverId(tenantId, driverId);
     }
 
     @Override
     public List<Trip> getTripsByStatus(TripStatus status) {
-        return tripRepository.findByStatus(status);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        return tripRepository.findByTenantIdAndStatus(tenantId, status);
     }
 
     @Override
     public Trip updateTripStatus(Long tripId, TripStatus status) {
-        Optional<Trip> tripOpt = tripRepository.findById(tripId);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        Optional<Trip> tripOpt = tripRepository.findByIdAndTenantId(tripId, tenantId);
         if (tripOpt.isPresent()) {
             Trip trip = tripOpt.get();
             trip.setStatus(status);
@@ -68,7 +80,8 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public Trip assignDriver(Long tripId, Long driverId) {
-        Optional<Trip> tripOpt = tripRepository.findById(tripId);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        Optional<Trip> tripOpt = tripRepository.findByIdAndTenantId(tripId, tenantId);
         if (tripOpt.isPresent()) {
             Trip trip = tripOpt.get();
             trip.setDriverId(driverId);
@@ -79,7 +92,9 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
+    @Transactional
     public void deleteTrip(Long id) {
-        tripRepository.deleteById(id);
+        String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
+        tripRepository.deleteByIdAndTenantId(id, tenantId);
     }
 }
