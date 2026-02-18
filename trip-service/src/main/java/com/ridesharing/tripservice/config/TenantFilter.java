@@ -43,9 +43,16 @@ public class TenantFilter extends OncePerRequestFilter {
             }
         }
 
-        // allow health/actuator endpoints without tenant
+        // allow health/actuator and Swagger/OpenAPI endpoints without tenant
         String path = request.getRequestURI();
-        if ((tenantId == null || tenantId.isBlank()) && (path.startsWith("/actuator") || path.equals("/actuator/health"))) {
+        if ((tenantId == null || tenantId.isBlank()) && (
+                path.startsWith("/actuator") ||
+                path.equals("/actuator/health") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/swagger-ui.html") ||
+                path.startsWith("/webjars/")
+        )) {
             filterChain.doFilter(request, response);
             return;
         }
