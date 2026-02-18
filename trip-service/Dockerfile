@@ -22,5 +22,5 @@ COPY trip-service/src/main/resources/application-docker.properties /app/applicat
 
 EXPOSE 8082
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8082/v3/api-docs || exit 1
+  CMD curl -f http://localhost:8082/actuator/health || exit 1
 CMD ["java", "-Dspring.config.location=file:/app/", "-jar", "app.jar"]

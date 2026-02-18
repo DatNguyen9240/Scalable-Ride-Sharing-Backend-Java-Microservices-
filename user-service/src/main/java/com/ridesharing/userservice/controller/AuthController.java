@@ -51,13 +51,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<?> login(@jakarta.validation.Valid @org.springframework.web.bind.annotation.RequestBody com.ridesharing.userservice.dto.LoginRequest loginRequest) {
         try {
-            String username = loginRequest.get("username");
+            String username = loginRequest.getUsername();
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                     username,
-                    loginRequest.get("password")
+                    loginRequest.getPassword()
                 )
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);

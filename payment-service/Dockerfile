@@ -15,5 +15,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 COPY --from=build /workspace/payment-service/target/payment-service-0.0.1-SNAPSHOT.jar app.jar
 COPY src/main/resources/application.properties /app/application.properties
 EXPOSE 8083
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -f http://localhost:8083/v3/api-docs || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -f http://localhost:8083/actuator/health || exit 1
 CMD ["java", "-Dspring.config.location=file:/app/", "-jar", "app.jar"]
