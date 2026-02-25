@@ -2,26 +2,26 @@ package com.example.apigateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 
 /**
- * Relax security for the API Gateway so it can proxy requests publicly during
+ * Relax security for the API Gateway (reactive) so it can proxy requests publicly during
  * local development / demo. Adjust rules later for production.
  */
 @Configuration
-@EnableWebSecurity
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http.csrf().disable()
-            .authorizeHttpRequests(authz -> authz
-                .anyRequest().permitAll() // allow everything through the gateway
+            .authorizeExchange(exchanges -> exchanges
+                .anyExchange().permitAll() // allow everything through the gateway
             )
-            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            .httpBasic().disable()
+            .formLogin().disable();
 
         return http.build();
     }

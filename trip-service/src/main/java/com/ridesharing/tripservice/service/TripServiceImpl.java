@@ -17,6 +17,9 @@ public class TripServiceImpl implements TripService {
     @Autowired
     private TripRepository tripRepository;
 
+    @Autowired
+    private org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
+
     @Override
     public Trip createTrip(Trip trip) {
         String tenantId = com.ridesharing.tripservice.util.TenantContext.getTenantId();
@@ -26,7 +29,20 @@ public class TripServiceImpl implements TripService {
         trip.setTenantId(tenantId);
         trip.setStatus(TripStatus.REQUESTED);
         trip.setRequestedAt(LocalDateTime.now());
-        return tripRepository.save(trip);
+        Trip created = tripRepository.save(trip);
+
+        // publish event (best-effort POC)
+        try {
+            com.ridesharing.tripservice.events.TripCreatedEvent evt = new com.ridesharing.tripservice.events.TripCreatedEvent(
+                    created.getTenantId(), created.getId(), created.getPassengerId(), created.getPickupLocation(), created.getDestination(), created.getRequestedAt().toString()
+            );
+            kafkaTemplate.send("trips.created", created.getTenantId(), evt);
+        } catch (Exception e) {
+            // log and continue — event publishing is best-effort in this POC
+            org.slf4j.LoggerFactory.getLogger(TripServiceImpl.class).warn("Failed to publish trip.created event", e);
+        }
+
+        return created;
     }
 
     @Override

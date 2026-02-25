@@ -2,215 +2,146 @@
 
 ## Overview
 
-This project is a scalable ride-sharing backend built with Java microservices architecture. It simulates a production-style system similar to modern ride-sharing platforms, focusing on clean architecture, service isolation, and scalability.
-
-The system is composed of multiple independent services communicating through REST APIs and routed via an centralized API Gateway. Each service is containerized and designed to support multi-tenant regional expansion.
-
-This project demonstrates practical backend engineering skills including microservices design, authentication, database architecture, and containerized deployment.
+Lightweight Java microservices demo for a ride‑sharing backend — user, trip and payment services routed through an API Gateway. The project demonstrates multi‑tenant design, JWT auth, containerization and common backend prácticas for production‑style systems.
 
 ---
 
-## Architecture
+## Quick summary
 
-### Services
-
-* **User Service**
-
-  * User registration and authentication
-  * JWT-based authorization
-  * Profile management
-
-* **Trip Service**
-
-  * Create and join trips
-  * Trip matching logic
-  * Multi-tenant support by region
-
-* **Payment Service (Mock)**
-
-  * Simulated wallet and transaction handling
-
-* **API Gateway**
-
-  * Central routing entry point
-  * Authentication filtering
-  * Service orchestration
-
-### Architecture Principles
-
-* Microservices architecture
-* Clean architecture and separation of concerns
-* Database per service
-* Multi-tenant design
-* Containerized deployment
-
----
-
-## Tech Stack
-
-* Java 17
-* Spring Boot
-* Spring Cloud Gateway
-* PostgreSQL
-* Docker
-* JWT Authentication
-* Maven
-* Swagger / OpenAPI
-
----
-
-## Project Structure
-
-```
-ride-sharing-backend/
-├── api-gateway/
-├── user-service/
-├── trip-service/
-├── payment-service/
-├── docker-compose.yml
-└── README.md
-```
-
-Each service follows a layered architecture:
-
-```
-controller → service → repository → database
-```
+- Services: `user-service`, `trip-service`, `payment-service`, `api-gateway`
+- Run locally with Docker Compose
+- Swagger/OpenAPI available per service (`/v3/api-docs`, `swagger-ui/index.html`)
 
 ---
 
 ## Features
 
-* RESTful API design
-* JWT authentication and authorization
-* Multi-tenant database architecture
-* Trip lifecycle management
-* Mock payment transactions
-* API Gateway routing
-* Dockerized microservices
-* API documentation with Swagger
-* Logging and error handling
+- JWT authentication (tenant claim included)
+- Multi-tenant support (per-request `X-Tenant-ID` or tenant claim in JWT)
+- REST APIs with OpenAPI/Swagger UI
+- Per-service PostgreSQL databases
+- Dockerized, ready for CI builds
 
 ---
 
-## Multi-Tenant Design
+## Getting started (quick)
 
-The system supports multiple regions using tenant isolation.
+Prerequisites: Java 17+, Maven, Docker & Docker Compose
 
-Tenant selection is handled through request headers:
+1. Build (optional):
 
-```
-X-Tenant-ID: <region>
-```
-
-Each tenant can map to a separate database schema or database instance, enabling regional scalability.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-* Java 17+
-* Maven
-* Docker & Docker Compose
-* PostgreSQL
-
-### Installation
-
-1. Clone the repository
-
-```
-git clone https://github.com/your-username/ride-sharing-backend.git
-cd ride-sharing-backend
-```
-
-2. Build services
-
-```
+```bash
 mvn clean package
 ```
 
-3. Start the system
+2. Start services:
 
-```
-docker-compose up --build
+```bash
+docker compose up -d --build
 ```
 
-4. Access API Gateway
+3. Open Gateway / service docs:
 
-```
-http://localhost:8080
-```
+- API Gateway: `http://localhost:8080`
+- User service Swagger: `http://localhost:8081/swagger-ui/index.html`
+- Trip service Swagger: `http://localhost:8082/swagger-ui/index.html`
+- Payment service Swagger: `http://localhost:8083/swagger-ui/index.html`
+- OpenAPI JSON (example): `http://localhost:8082/v3/api-docs`
 
 ---
 
-## API Documentation
+## Quick API example (register → login → create trip)
 
-Swagger UI is available for each service:
+1) Register a user (tenant required):
 
+```bash
+curl -sS -X POST http://localhost:8081/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"linh","email":"linh@example.com","password":"password","tenantId":"default"}'
 ```
-http://localhost:<service-port>/swagger-ui.html
+
+2) Login → get JWT:
+
+```bash
+curl -sS -X POST http://localhost:8081/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"linh","password":"password"}'
+# response: { "token": "<JWT>" }
 ```
+
+3) Create a trip via API Gateway (use token OR X-Tenant-ID header):
+
+```bash
+TOKEN=<JWT_FROM_LOGIN>
+curl -sS -X POST http://localhost:8080/api/trips \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-ID: default' \
+  -d '{"passengerId":1,"pickupLocation":"Point A","destination":"Point B"}'
+```
+
+Notes:
+- `X-Tenant-ID` header OR JWT claim `tenant` is required for tenant‑scoped endpoints. If both missing you will see: `{ "error": "Missing X-Tenant-ID header" }`.
+- Use the **Authorize** button in Swagger UI (paste `Bearer <token>`) to call protected endpoints from the UI.
 
 ---
 
-## Example API Flow
+## Multi-tenant behavior
 
-1. User authenticates via User Service
-2. API Gateway validates JWT
-3. Trip Service handles trip requests
-4. Payment Service processes transactions
+- Tenant is a logical string (`tenantId`) stored on resources (users, trips).
+- Tenant is provided by the client via `X-Tenant-ID` header or embedded in JWT `tenant` claim.
+- Services store `tenant_id` on domain entities and always scope queries by tenant.
 
 ---
 
-## Testing
+## Development & tests
 
-Run tests for each service:
+- Run unit + integration tests:
 
-```
+```bash
 mvn test
 ```
 
-Unit and integration tests cover authentication, trip management, and payment flows.
+- CI currently builds Docker images (see `.github/workflows/ci.yml`) — note: the workflow currently **skips tests** during the Maven package step. Consider enabling tests in CI.
 
 ---
 
-## Deployment
+## Security / secrets
 
-The system is containerized using Docker and can be deployed to any cloud platform supporting container orchestration.
-
-Future improvements may include:
-
-* Kubernetes deployment
-* Service discovery
-* Distributed caching
-* Event-driven messaging
+- DO NOT commit secrets (e.g. `jwt.secret`, DB passwords). Move secrets to environment variables or a secret manager before production.
+- Example: set `JWT_SECRET` / `SPRING_DATASOURCE_PASSWORD` via environment or Docker secrets.
 
 ---
 
-## Learning Goals
+## Troubleshooting
 
-This project was built to demonstrate:
-
-* Java microservices architecture
-* Scalable backend system design
-* Multi-tenant SaaS patterns
-* Containerized deployment workflows
-* Production-style engineering practices
+- Missing tenant header when calling trip endpoints → add `X-Tenant-ID` header or send JWT with `tenant` claim.
+- Swagger shows `{ "error": "Missing X-Tenant-ID header" }` if you open docs on a protected path; use the service Swagger URL (docs are public) or add the header/token when calling protected APIs.
 
 ---
 
-## Future Enhancements
+## What’s missing / recommended next work (high priority)
 
-* Real payment gateway integration
-* Notification service
-* Event streaming with message brokers
-* Monitoring and observability
-* CI/CD pipeline
+1. Automated tests: add comprehensive unit + integration tests and enable them in CI ✅
+2. Externalize secrets: use env vars / Docker secrets / Vault 🔒
+3. Observability: add Micrometer/Prometheus metrics + dashboards 📈
+4. Kubernetes manifests / Helm charts for production deployment ⛵
+5. Protect sensitive endpoints (Swagger/OpenAPI) in production, add RBAC
+6. E2E tests & Postman collection
+
+---
+
+## Contribution
+
+- Fork → feature branch → PR to `develop`.
+- Add tests for any new behavior and update README where necessary.
 
 ---
 
 ## License
 
 This project is for educational and portfolio purposes.
+
+---
+
+If you want, I can: add the Quickstart examples to README (done), enable tests in CI, or add Micrometer/Prometheus — which task should I pick next?
