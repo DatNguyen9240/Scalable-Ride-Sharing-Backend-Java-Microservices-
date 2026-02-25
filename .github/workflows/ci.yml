@@ -28,8 +28,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
-      - name: Build with Maven (skip tests)
-        run: mvn -B -DskipTests package
+      - name: Build with Maven (run tests)
+        run: mvn -B package
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v2
